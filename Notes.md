@@ -190,4 +190,47 @@ Less is More!
    3. 对同一个package中的不同文件，将文件名按字符串进行从小到大排序，之后顺序调用各文件中的init函数
    4. 对于不同的package，如果不相互依赖的话，按照main包中import的顺序调用其包中的init函数
    5. 如果package存在依赖，调用顺序为最后被依赖的最先被初始化，因此main包总是最后一个被初始化，因为他依赖别人最多
-   6. 
+
+### Concurrency
+1. the ability to execute many tasks
+2. Go is a concurrent language and not a parallel one -> concurrency is different from parallelism
+   1. concurrency: jogging, stop, tie his shoes, jogging -> do A, switch to do B, switch to do A
+   2. parallelism: jogging and listening to music at the same time -> do A and B at the same time
+3. Process, Thread, Coroutine 
+   1. Process 进程: 一个程序在一个数据集中的一次动态执行过程，aka “正在执行的程序”
+      1. 程序，数据集，进程控制块三部分组成
+      2. limitation：创建、撤销、切换的开销比较大
+   2. Thread:
+      1. a basic cpu execution unit, also the least unit during program execution
+      2. pros 线程:
+         1. 减小程序并发执行时的开销
+         2. 提高操作系统的并发性能
+      3. cons:
+         1. 没有自己的系统资源，只拥有在运行时必不可少的资源， but 同一进程的各个线程可以共享进程所拥有的系统资源
+         2. 对于某些独占性资源存在锁机制，处理不当可能产生死锁
+   3. Coroutine 协程 微线程：
+      1. 用户态的轻量级线程，也叫微线程
+      2. 其调度完全由用户控制
+      3. pros:
+         1. 创建上百万个也不会导致系统资源衰竭，而进程和线程通常最多不能超过一万个
+         2. compared to multithreading: 子程序切换是由程序自身控制，执行效率极高，没有线程切换的开销
+         3. compared to multiprocessing: 线程数量越多，协程的性能优势就越明显
+      4. go对于并发的实现就是靠协程
+
+### Goroutine
+1. pros
+   1. cheap：只是堆栈大小的几个kb，可以根据应用程序的需要增长和收缩
+      > 如果是在线程的情况下，堆栈大小就必须是指定且固定的了
+   2. 被多路复用到较少的OS线程，使得我们开发的时候不需要在意这些复杂的细节
+   3. 使用它访问共享内存时，通过设计的通道可以防止竞态条件发生
+2. 主goroutine
+   1. 设定每个goroutine所能申请的栈空间的最大尺寸，32位：250mb；64位：1gb，运行时超出则会StackOverflow+终止运行
+   2. 执行一系列初始化工作
+      1. 启动专用于在后台清扫内存垃圾的goroutine，并设置GC可用的标识
+      2. 执行main包中的init
+      3. 执行main
+      4. 检查主goroutine是否引发了runtime panic，并进行必要的处理
+      5. 结束自己以及当前进程的执行
+3. tips
+   1. 新的goroutine开始时，goroutine调用立即返回，然后立即执行下一行代码
+   2. 如果main的Goroutine终止了，程序将被终止，而其他Goroutine将不会运行
